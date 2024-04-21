@@ -3,6 +3,8 @@ import matplotlib.pyplot as plt
 
 ### Chi square table values ###
 # The first key is the degree of freedom 
+# ID1: 205734049
+# ID2: 208522094
 # The second key is the p-value cut-off
 # The values are the chi-statistic that you need to use in the pruning
 
@@ -76,7 +78,17 @@ def calc_gini(data):
     ###########################################################################
     # TODO: Implement the function.                                           #
     ###########################################################################
-    pass
+    # gini = 1 - sum(probabilties^2)
+    # more information on slide 19, recitation 2
+    
+    # get the last column of the data: slice[all rows, last column]
+    labels = data[:,-1]
+    # get the unique values and their counts
+    unique, counts = np.unique(labels, return_counts=True)
+    # calculate the probabilities
+    probs = counts / len(labels)
+    # calculate the gini impurity
+    gini = 1 - np.sum(probs**2)
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -96,7 +108,17 @@ def calc_entropy(data):
     ###########################################################################
     # TODO: Implement the function.                                           #
     ###########################################################################
-    pass
+    # entropy = -sum[(probabilities)*log(probabilities)]
+    # more information on slide 19, recitation 2
+
+    # get the labels from the last column slice[all rows, last column]
+    labels = data[:,-1]
+    # get the unique values and their counts
+    unique, counts = np.unique(labels, return_counts=True)
+    # calculate the probabilities
+    probs = counts / len(labels)
+    # calculate entropy
+    entropy = -np.sum(probs * np.log2(probs)) 
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
