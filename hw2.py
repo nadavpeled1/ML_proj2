@@ -153,7 +153,17 @@ class DecisionNode:
         ###########################################################################
         # TODO: Implement the function.                                           #
         ###########################################################################
-        pass
+        # reminder: the prediction of a node is the most common label in the node data
+        # (if you would have to predict the label of a group member, you would guess the most common one)
+        
+        # get the labels from the last column: slice[all rows, last column]
+        labels = self.data[:,-1]
+        # get the unique values and their counts
+        unique, counts = np.unique(labels, return_counts=True)
+        # get the most common label:
+        # use np.argmax(counts) to find the index of the most common label,
+        # Then use it to find the label itself from unique[]
+        pred = unique[np.argmax(counts)]
         ###########################################################################
         #                             END OF YOUR CODE                            #
         ###########################################################################
@@ -168,7 +178,10 @@ class DecisionNode:
         ###########################################################################
         # TODO: Implement the function.                                           #
         ###########################################################################
-        pass
+        # add the child node to the children list
+        self.children.append(node)
+        # add the value of the child node to the children_values list
+        self.children_values.append(val)
         ###########################################################################
         #                             END OF YOUR CODE                            #
         ###########################################################################
@@ -186,7 +199,20 @@ class DecisionNode:
         ###########################################################################
         # TODO: Implement the function.                                           #
         ###########################################################################
-        pass
+        # FI = prob(node) * (node impurity) - sumAllChildren:[prob(child) * (child impurity)]
+
+        # calculate the probability of the node
+        prob_node = len(self.data) / n_total_sample
+        # calculate the impurity of the node
+        impurity_node = self.impurity_func(self.data)
+        # calculate the sum of the impurities of the children
+        # can we do it without iterating all children?
+        sum__weighted_children_impurities = 0
+        for child in self.children:
+            sum__weighted_children_impurities += len(child.data) / n_total_sample * child.impurity_func(child.data)
+        
+        # calculate the feature importance
+        self.feature_importance = prob_node * impurity_node - sum__weighted_children_impurities
         ###########################################################################
         #                             END OF YOUR CODE                            #
         ###########################################################################
@@ -208,7 +234,30 @@ class DecisionNode:
         ###########################################################################
         # TODO: Implement the function.                                           #
         ###########################################################################
-        pass
+        # Split the data according to the feature (required both for gain ration and goodness of split)
+        groups = self.data.groupby(feature)
+
+        # calculate by goodness of split:
+        if not self.gain_ratio:
+            # calculate the impurity of the node
+            node_impurity = self.impurity_func(self.data)
+            # calculate the weighted impurity of the children
+            weighted_impurity_children = 0
+            for group in groups.values(): # TODO: check if this is the correct way to iterate over the groups
+                weighted_impurity_children += len(group) / len(self.data) * self.impurity_func(group)
+            # calculate the goodness of split
+            goodness = node_impurity - weighted_impurity_children
+
+        # calculate by gain ratio: Note where we iterate over the classes and not the groups
+        else: # TODO: does the info_gain has to use the entropy function?
+            # calculate the information gain
+            info_gain = calc_entropy(self.data)
+            split_info = 0
+            for group in groups.values(): # TODO: check if this is the correct way to iterate over the groups
+                split_info += len(group) / len(self.data) * calc_entropy(group)
+            goodness =  info_gain / split_info
+      
+
         ###########################################################################
         #                             END OF YOUR CODE                            #
         ###########################################################################
