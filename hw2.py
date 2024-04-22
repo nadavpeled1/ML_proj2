@@ -239,34 +239,26 @@ class DecisionNode:
         feature_values = np.unique(self.data[:, feature])
         for value in feature_values:
             groups[value] = self.data[self.data[:, feature] == value]
-
-        # Calculate the impurity of the node
-        node_impurity = self.impurity_func(self.data)
-
         
-        if not self.gain_ratio:
-            # Calculate the weighted impurity of the children
-            weighted_impurity_children = 0
-            for group in groups.values():
-                weighted_impurity_children += len(group) / len(self.data) * self.impurity_func(group)
-            # Calculate the goodness of split
-            goodness = node_impurity - weighted_impurity_children
-
-        else:
+        if self.gain_ratio:
             # Calculate the information gain
-            info_gain = 0
-            for group in groups.values():
-                info_gain += len(group) / len(self.data) * self.impurity_func(group)
-
-            # Calculate the split info
+            info_gain = calc_entropy(self.data)
             split_info = 0
-            for group in groups.values():
-                group_probability = len(group) / len(self.data)
-                split_info -= group_probability * np.log2(group_probability)
-
+            for sub_data in groups.values():
+                sub_data_weight = len(sub_data) / len(self.data)
+                split_info -= sub_data_weight * np.log2(sub_data_weight)
             # Calculate the goodness of split
             goodness = info_gain / split_info
+        
+        else:
+            # Calculate the weighted impurity of the children
+            weighted_impurity_children = 0
+            for sub_data in groups.values():
+                weighted_impurity_children += len(sub_data) / len(self.data) * self.impurity_func(sub_data)
+            # Calculate the goodness of split
+            goodness = self.impurity_func(self.data) - weighted_impurity_children
 
+        #TODO: should i use impurity_func or entropy_func?
         ###########################################################################
         #                             END OF YOUR CODE                            #
         ###########################################################################
