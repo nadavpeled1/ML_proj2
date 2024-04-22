@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 
 ### Chi square table values ###
@@ -234,29 +235,37 @@ class DecisionNode:
         ###########################################################################
         # TODO: Implement the function.                                           #
         ###########################################################################
-        # Split the data according to the feature (required both for gain ration and goodness of split)
-        groups = self.data.groupby(feature)
+        # Split the data according to the feature
+        feature_values = np.unique(self.data[:, feature])
+        for value in feature_values:
+            groups[value] = self.data[self.data[:, feature] == value]
 
-        # calculate by goodness of split:
+        # Calculate the impurity of the node
+        node_impurity = self.impurity_func(self.data)
+
+        
         if not self.gain_ratio:
-            # calculate the impurity of the node
-            node_impurity = self.impurity_func(self.data)
-            # calculate the weighted impurity of the children
+            # Calculate the weighted impurity of the children
             weighted_impurity_children = 0
-            for group in groups.values(): # TODO: check if this is the correct way to iterate over the groups
+            for group in groups.values():
                 weighted_impurity_children += len(group) / len(self.data) * self.impurity_func(group)
-            # calculate the goodness of split
+            # Calculate the goodness of split
             goodness = node_impurity - weighted_impurity_children
 
-        # calculate by gain ratio: Note where we iterate over the classes and not the groups
-        else: # TODO: does the info_gain has to use the entropy function?
-            # calculate the information gain
-            info_gain = calc_entropy(self.data)
+        else:
+            # Calculate the information gain
+            info_gain = 0
+            for group in groups.values():
+                info_gain += len(group) / len(self.data) * self.impurity_func(group)
+
+            # Calculate the split info
             split_info = 0
-            for group in groups.values(): # TODO: check if this is the correct way to iterate over the groups
-                split_info += len(group) / len(self.data) * calc_entropy(group)
-            goodness =  info_gain / split_info
-      
+            for group in groups.values():
+                group_probability = len(group) / len(self.data)
+                split_info -= group_probability * np.log2(group_probability)
+
+            # Calculate the goodness of split
+            goodness = info_gain / split_info
 
         ###########################################################################
         #                             END OF YOUR CODE                            #
