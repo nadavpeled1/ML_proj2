@@ -251,8 +251,24 @@ class DecisionTree:
         self.root = None
         ###########################################################################
         # TODO: Implement the function.                                           #
-        ###########################################################################
-        pass
+        ##########################################################################
+        # Initialize the queue of the the nodes to create the tree from.
+        nodes_queue = []
+        self.root = DecisionNode(self.data, self.impurity_func, depth=0, chi=self.chi, max_depth=self.max_depth,
+                                 gain_ratio=self.gain_ratio)
+        nodes_queue.append(self.root)
+
+        while len(nodes_queue) > 0:
+            current_node = nodes_queue.pop()
+
+            # Continue if the current node is a leaf (= Perfectly classified)
+            if current_node.terminal:
+                continue
+
+            current_node.split()
+
+            for child in current_node.children:
+                nodes_queue.append(child)
         ###########################################################################
         #                             END OF YOUR CODE                            #
         ###########################################################################
