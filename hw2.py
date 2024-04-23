@@ -135,7 +135,7 @@ class DecisionNode:
         self.pred = self.calc_node_pred() # the prediction of the node
         self.depth = depth # the current depth of the node
         self.children = [] # array that holds this nodes children
-        self.children_values = []
+        self.children_values = [] # holds the value of the feature associated with the children (list).
         self.terminal = False # determines if the node is a leaf
         self.chi = chi 
         self.max_depth = max_depth # the maximum allowed depth of the tree
@@ -301,10 +301,10 @@ class DecisionNode:
                 best_feature = feature
                 best_groups = groups
 
-        # if the best feature is not good enough, return
-        if best_goodness < self.chi:
-            self.terminal = True
-            return
+        # # if the best feature is not good enough, return
+        # if best_goodness < self.chi:
+        #     self.terminal = True
+        #     return
         
         # create the children nodes
         for value, sub_data in best_groups.items():
@@ -378,7 +378,19 @@ class DecisionTree:
         ###########################################################################
         # TODO: Implement the function.                                           #
         ###########################################################################
-        pass
+        # start from the root
+        node = self.root
+        # while the node is not a leaf (terminal)
+        while not node.terminal:
+            # get the feature value of the instance to decide which child to go to
+            feature_value = instance[node.feature]
+            # find the child with the corresponding feature value
+            for i, child in enumerate(node.children):
+                if node.children_values[i] == feature_value:
+                    node = child
+                    break
+        # get the prediction of the leaf node
+        pred = node.pred #why do we need "pred" if we have tio return node.pred?
         ###########################################################################
         #                             END OF YOUR CODE                            #
         ###########################################################################
@@ -397,7 +409,13 @@ class DecisionTree:
         ###########################################################################
         # TODO: Implement the function.                                           #
         ###########################################################################
-        pass
+        # iterate over the dataset and predict each instance
+        correct = 0
+        for instance in dataset:
+            if self.predict(instance) == instance[-1]:
+                correct += 1
+        # calculate the accuracy
+        accuracy = correct / len(dataset) * 100       
         ###########################################################################
         #                             END OF YOUR CODE                            #
         ###########################################################################
