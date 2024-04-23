@@ -275,7 +275,44 @@ class DecisionNode:
         ###########################################################################
         # TODO: Implement the function.                                           #
         ###########################################################################
-        pass
+        
+        # if the node is a leaf, return
+        if self.terminal:
+            return
+        
+        # if the node is perfectly classified, return
+        if len(np.unique(self.data[:,-1])) == 1:
+            self.terminal = True
+            return
+        
+        # if the node is at the maximum depth, return
+        if self.depth == self.max_depth:
+            self.terminal = True
+            return
+        
+        # find the best feature to split according to goodness of split
+        best_feature = -1
+        best_goodness = 0
+        best_groups = None
+        for feature in range(self.data.shape[1] - 1):
+            goodness, groups = self.goodness_of_split(feature)
+            if goodness > best_goodness:
+                best_goodness = goodness
+                best_feature = feature
+                best_groups = groups
+
+        # if the best feature is not good enough, return
+        if best_goodness < self.chi:
+            self.terminal = True
+            return
+        
+        # create the children nodes
+        for value, sub_data in best_groups.items():
+            child = DecisionNode(sub_data, self.impurity_func, feature=best_feature, 
+                                 depth=self.depth + 1, chi=self.chi, max_depth=self.max_depth, gain_ratio=self.gain_ratio)
+            self.add_child(child, value)
+        
+        #TODO: should i evaluate the feature importance here?
         ###########################################################################
         #                             END OF YOUR CODE                            #
         ###########################################################################
@@ -304,15 +341,19 @@ class DecisionTree:
         ##########################################################################
         # Initialize the queue of the the nodes to create the tree from.
         nodes_queue = []
-        self.root = DecisionNode(self.data, self.impurity_func, depth=0, chi=self.chi, max_depth=self.max_depth,
-                                 gain_ratio=self.gain_ratio)
+        self.root = DecisionNode(self.data, self.impurity_func, depth=0, chi=self.chi, 
+                                 max_depth=self.max_depth, gain_ratio=self.gain_ratio)
         nodes_queue.append(self.root)
 
-        while len(nodes_queue) > 0:
+        while nodes_queue != []:
             current_node = nodes_queue.pop()
-
-            # Continue if the current node is a leaf (= Perfectly classified)
-            if current_node.terminal:
+            # if current node is perfectly classified, continue to the next node
+            if len(np.unique(current_node.data[:,-1])) == 1: # more efficient than calculating the impurity
+                current_node.terminal = True
+                continue
+            # if current node is a leaf, continue to the next node
+            if current_node.depth == self.max_depth:
+                current_node.terminal = True
                 continue
 
             current_node.split()
