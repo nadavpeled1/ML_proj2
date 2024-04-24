@@ -367,9 +367,26 @@ class DecisionTree:
 
             for child in current_node.children:
                 nodes_queue.append(child)
+
+        self.calculate_feature_importance(self.root, self.root.data.shape[0])
         ###########################################################################
         #                             END OF YOUR CODE                            #
         ###########################################################################
+
+    def calculate_feature_importance(self, node, n_total_sample):
+        """
+        Calculate recursively the feature importance of every node in the tree.
+
+        :param node: The node to calculate the FI
+        :param n_total_sample: The total instances in the tree
+
+        This function has no return value, it only assigns the appropriate FI to each node in the tree.
+        """
+        if not node.children:
+            node.calc_feature_importance(n_total_sample)
+        else:
+            for child in node.children:
+                self.calculate_feature_importance(child, n_total_sample)
 
     def predict(self, instance):
         """
