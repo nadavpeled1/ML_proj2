@@ -239,26 +239,29 @@ class DecisionNode:
         feature_values = np.unique(self.data[:, feature])
         for value in feature_values:
             groups[value] = self.data[self.data[:, feature] == value]
-        
-        if self.gain_ratio:
-            # Calculate the information gain
-            info_gain = calc_entropy(self.data)
+
+        # Forcing the impurity_func to be entropy if gain_ratio == True
+        current_impurity_func = self.impurity_func if not self.gain_ratio else calc_entropy
+
+        # Calculate the Info_gain or Gini_gain appropriately
+        weighted_impurity_children = 0
+        for sub_data in groups.values():
+            weighted_impurity_children += len(sub_data) / len(self.data) * current_impurity_func(sub_data)
+        # Calculate the goodness of split
+        info_or_gini_gain = current_impurity_func(self.data) - weighted_impurity_children
+
+        # If gain_ratio == False or goodness == 0 return only the goodness of split
+        if not self.gain_ratio or info_or_gini_gain == 0:
+            goodness = info_or_gini_gain
+
+        # If gain_ratio == True return the calculate the gain ratio with split info
+        else:
             split_info = 0
             for sub_data in groups.values():
                 sub_data_weight = len(sub_data) / len(self.data)
                 split_info -= sub_data_weight * np.log2(sub_data_weight)
             # Calculate the goodness of split
-            goodness = info_gain / split_info
-        
-        else:
-            # Calculate the weighted impurity of the children
-            weighted_impurity_children = 0
-            for sub_data in groups.values():
-                weighted_impurity_children += len(sub_data) / len(self.data) * self.impurity_func(sub_data)
-            # Calculate the goodness of split
-            goodness = self.impurity_func(self.data) - weighted_impurity_children
-
-        #TODO: should i use impurity_func or entropy_func?
+            goodness = info_or_gini_gain / split_info
         ###########################################################################
         #                             END OF YOUR CODE                            #
         ###########################################################################
@@ -300,6 +303,10 @@ class DecisionNode:
                 best_goodness = goodness
                 best_feature = feature
                 best_groups = groups
+
+        if best_groups is None:
+            self.terminal = True
+            return
 
         # # if the best feature is not good enough, return
         # if best_goodness < self.chi:
@@ -345,7 +352,7 @@ class DecisionTree:
                                  max_depth=self.max_depth, gain_ratio=self.gain_ratio)
         nodes_queue.append(self.root)
 
-        while nodes_queue != []:
+        while nodes_queue:
             current_node = nodes_queue.pop()
             # if current node is perfectly classified, continue to the next node
             if len(np.unique(current_node.data[:,-1])) == 1: # more efficient than calculating the impurity
