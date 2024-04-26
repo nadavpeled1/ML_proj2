@@ -318,9 +318,12 @@ class DecisionNode:
         # reminder: we set the p-value when initializing the tree, and we have the chi_table dictionary according to
         # the degrees of freedom = number of feature values - 1.
         # Calculate the number of feature values
-        num_feature_values = len(np.unique(self.data[:, best_feature]))
+
+        # Calculating the Chi square value, num of feature vals and num of different class in dataset
+        self.chi, num_feature_values, num_classes = self.chi_test(best_feature)
+
         # Adjust degrees of freedom for chi-square test
-        df = num_feature_values - 1
+        df = (num_feature_values - 1) * (num_classes - 1)
         if self.chi != 1 and best_goodness < chi_table[df][self.chi]:
             self.terminal = True
             return
@@ -333,6 +336,24 @@ class DecisionNode:
         ###########################################################################
         #                             END OF YOUR CODE                            #
         ###########################################################################
+
+    def chi_test(self, feature):
+        """
+
+        :param feature:
+        :return:
+        """
+        chi_result = 0
+        feature_values = np.unique(self.data[:, feature])
+        feature_classes = np.unique(self.data[:, -1])
+        for feature_val in feature_values:
+            Df = len([self.data[:, feature] == feature_val])
+            for class_val in feature_classes:
+                pf = len([self.data[:, feature] == feature_val and self.data[:, -1] == class_val])
+                E_class_val = Df * len([self.data[:, -1] == class_val]) / len(self.data)
+                chi_result += (pf - E_class_val) ** 2 / E_class_val
+
+        return chi_result, len(feature_values), len(feature_classes)
 
 
 class DecisionTree:
@@ -526,9 +547,12 @@ def chi_pruning(X_train, X_test):
     # iterate over the chi values
     for p_val in [1, 0.5, 0.25, 0.1, 0.05, 0.0001]:
         # create the tree: entropy + gain_ratio (bring the best results, from the previous part)
-        tree = DecisionTree(X_train, calc_entropy, gain_ratio=True, chi=p_val)
+        tree = DecisionTree(X_train, calc_entropy, gain_ratio=True)
         # build the tree
         tree.build_tree()
+        # Pruning the tree
+        node = tree.root
+
         # calculate the accuracy
         chi_training_acc.append(tree.calc_accuracy(X_train))
         chi_validation_acc.append(tree.calc_accuracy(X_test))
@@ -553,7 +577,16 @@ def count_nodes(node):
     ###########################################################################
     # TODO: Implement the function.                                           #
     ###########################################################################
-    pass
+    if not node:
+        return 0
+
+    if not node.children:
+        return 1
+
+    n_nodes = 0
+    for child in node.children:
+        n_nodes += count_nodes(child)
+
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
