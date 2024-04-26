@@ -314,10 +314,13 @@ class DecisionNode:
             self.terminal = True
             return
 
-        # # if the best feature is not good enough, return
-        # if best_goodness < self.chi:
-        #     self.terminal = True
-        #     return
+        # chi: prune the tree if the best goodness is less than the chi value
+        # reminder: we set the p-value when initializing the tree, and we have the chi_table dictionary according to
+        # the degrees of freedom = number of features - 1.
+        df = self.data.shape[1] - 1 # since we have only 2 classes, and we already know we have #classes != 1
+        if self.chi != 1 and best_goodness < chi_table[df][self.chi]:
+            self.terminal = True
+            return
 
         for value, sub_data in best_groups.items():
             child = DecisionNode(sub_data, self.impurity_func, depth=self.depth + 1,
@@ -487,15 +490,6 @@ def depth_pruning(X_train, X_validation):
         # append the accuracies to the lists
         training.append(training_accuracy)
         validation.append(validation_accuracy)
-
-        # # plot the accuracies
-        # plt.plot(range(1, 11), training, label='Training')
-        # plt.plot(range(1, 11), validation, label='Validation')
-        # plt.xlabel('Max Depth')
-        # plt.ylabel('Accuracy')
-        # plt.title('Accuracy as a function of the max depth')
-        # plt.legend()
-        # plt.show()
         ###########################################################################
         #                             END OF YOUR CODE                            #
         ###########################################################################
@@ -520,11 +514,22 @@ def chi_pruning(X_train, X_test):
     chi_training_acc = []
     chi_validation_acc = []
     depth = []
-
     ###########################################################################
     # TODO: Implement the function.                                           #
     ###########################################################################
-    pass
+    chi_testing_acc = []
+    # check the chi_table dictionary which contains the chi values for different degrees of freedom
+    # create the tree: entropy + gain_ratio (bring the best results, from the previous part)
+    tree = DecisionTree(X_train, calc_entropy, gain_ratio=True)
+    # iterate over the chi values
+    for chi in [0.5, 0.25, 0.1, 0.05, 0.0001]:
+        # build the tree
+        tree.chi = chi
+        tree.build_tree()
+        # calculate the accuracy
+        chi_training_acc.append(tree.calc_accuracy(X_train))
+        chi_testing_acc.append(tree.calc_accuracy(X_test))
+        depth.append(tree.root.depth)
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
