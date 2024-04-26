@@ -2,10 +2,11 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
-### Chi square table values ###
-# The first key is the degree of freedom 
 # ID1: 205734049
 # ID2: 208522094
+
+### Chi square table values ###
+# The first key is the degree of freedom
 # The second key is the p-value cut-off
 # The values are the chi-statistic that you need to use in the pruning
 
@@ -337,9 +338,10 @@ class DecisionNode:
 
     def chi_test(self, feature):
         """
+        Performs the chi square test and calculate the chi square value
 
-        :param feature:
-        :return:
+        :param feature: The feature for the chi square test
+        :return: The chi square value
         """
         chi_result = 0
         dataset = pd.DataFrame(self.data)
@@ -349,23 +351,8 @@ class DecisionNode:
             Df = len(dataset[dataset[feature] == feature_val])
             for class_val in feature_classes:
                 pf = len(dataset[(dataset[feature] == feature_val) & (dataset.iloc[:, -1] == class_val)])
-                # pf = len([self.data[:, feature] == feature_val and self.data[:, -1] == class_val])
                 E_class_val = Df * len(dataset[dataset.iloc[:, -1] == class_val]) / dataset.shape[0]
                 chi_result += (pf - E_class_val) ** 2 / E_class_val
-
-        # # Create a contingency table
-        # contingency_table = pd.crosstab(self.data[feature], self.data[:-1])
-        #
-        # # Observed frequencies
-        # observed = contingency_table.values
-        #
-        # # Calculate expected frequencies
-        # expected = np.sum(observed, axis=0) * np.sum(observed, axis=1)[:, np.newaxis] / np.sum(observed)
-        #
-        # # Calculate chi-squared value
-        # chi_squared = np.sum((observed - expected) ** 2 / expected)
-        #
-        # return chi_squared
 
         return chi_result
 
@@ -427,11 +414,11 @@ class DecisionTree:
 
         This function has no return value, it only assigns the appropriate FI to each node in the tree.
         """
-        if not node.children:
-            node.calc_feature_importance(n_total_sample)
-        else:
-            for child in node.children:
-                self.calculate_feature_importance(child, n_total_sample)
+
+        node.calc_feature_importance(n_total_sample)
+
+        for child in node.children:
+            self.calculate_feature_importance(child, n_total_sample)
 
     def predict(self, instance):
         """
