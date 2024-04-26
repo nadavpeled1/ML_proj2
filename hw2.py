@@ -412,7 +412,7 @@ class DecisionTree:
         while not node.terminal :
             # get the feature value of the instance to decide which child to go to
             feature_value = instance[node.feature]
-            # if the feature value is not in the training data, will return the prediction of the current node
+            # check if the feature value is in the training data (if not, return the prediction of the current node)
             child_found = False
             # find the child with the corresponding feature value
             for i, child in enumerate(node.children):
@@ -420,9 +420,7 @@ class DecisionTree:
                     node = child
                     child_found = True
                     break
-            if not child_found:
-                # if the feature value is not found, return the prediction of the current node
-                # this is the case when the feature value is not in the training data
+            if not child_found: # the feature value is not in the training data
                 return node.pred
         # get the prediction of the leaf node
         pred = node.pred  # why do we need "pred" if we have tio return node.pred?
@@ -480,7 +478,24 @@ def depth_pruning(X_train, X_validation):
         ###########################################################################
         # TODO: Implement the function.                                           #
         ###########################################################################
-        pass
+        # note that we are already in the loop of the max_depth values
+        # create the tree: entropy with gain_ratio bring the best results (from the previous part)
+        tree = DecisionTree(X_train, calc_entropy, max_depth=max_depth, gain_ratio=True)
+        tree.build_tree() 
+        # calculate the  accuracy
+        training_accuracy, validation_accuracy = tree.calc_accuracy(X_train), tree.calc_accuracy(X_validation)
+        # append the accuracies to the lists
+        training.append(training_accuracy)
+        validation.append(validation_accuracy)
+
+        # # plot the accuracies
+        # plt.plot(range(1, 11), training, label='Training')
+        # plt.plot(range(1, 11), validation, label='Validation')
+        # plt.xlabel('Max Depth')
+        # plt.ylabel('Accuracy')
+        # plt.title('Accuracy as a function of the max depth')
+        # plt.legend()
+        # plt.show()
         ###########################################################################
         #                             END OF YOUR CODE                            #
         ###########################################################################
