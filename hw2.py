@@ -412,15 +412,18 @@ class DecisionTree:
         while not node.terminal :
             # get the feature value of the instance to decide which child to go to
             feature_value = instance[node.feature]
+            # if the feature value is not in the training data, will return the prediction of the current node
+            child_found = False
             # find the child with the corresponding feature value
             for i, child in enumerate(node.children):
-                if i == len(node.children) - 1:
-                    # if the feature value is not found, return the prediction of the current node
-                    # this is the case when the feature value is not in the training data
-                    return node.pred
                 if node.children_values[i] == feature_value:
                     node = child
+                    child_found = True
                     break
+            if not child_found:
+                # if the feature value is not found, return the prediction of the current node
+                # this is the case when the feature value is not in the training data
+                return node.pred
         # get the prediction of the leaf node
         pred = node.pred  # why do we need "pred" if we have tio return node.pred?
         ###########################################################################
