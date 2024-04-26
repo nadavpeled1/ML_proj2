@@ -409,11 +409,15 @@ class DecisionTree:
         # start from the root
         node = self.root
         # while the node is not a leaf (terminal)
-        while not node.terminal:
+        while not node.terminal :
             # get the feature value of the instance to decide which child to go to
             feature_value = instance[node.feature]
             # find the child with the corresponding feature value
             for i, child in enumerate(node.children):
+                if i == len(node.children) - 1:
+                    # if the feature value is not found, return the prediction of the current node
+                    # this is the case when the feature value is not in the training data
+                    return node.pred
                 if node.children_values[i] == feature_value:
                     node = child
                     break
@@ -443,7 +447,7 @@ class DecisionTree:
             if self.predict(instance) == instance[-1]:
                 correct += 1
         # calculate the accuracy
-        accuracy = correct / len(dataset) * 100
+        accuracy = correct / len(dataset)
         ###########################################################################
         #                             END OF YOUR CODE                            #
         ###########################################################################
