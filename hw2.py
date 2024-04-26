@@ -254,16 +254,17 @@ class DecisionNode:
         info_or_gini_gain = current_impurity_func(self.data) - weighted_impurity_children
 
         # If gain_ratio == False or goodness == 0 return only the goodness of split
+        # (The Goodness == 0 condition is so the split info will not be 0, what will cause division by 0)
         if not self.gain_ratio or info_or_gini_gain == 0:
             goodness = info_or_gini_gain
 
-        # If gain_ratio == True return the calculate the gain ratio with split info
+        # If gain_ratio == true, calculate the gain ratio with split info
         else:
             split_info = 0
             for sub_data in groups.values():
                 sub_data_weight = len(sub_data) / len(self.data)
                 split_info -= sub_data_weight * np.log2(sub_data_weight)
-            # Calculate the goodness of split
+            # Calculate the gain ratio
             goodness = info_or_gini_gain / split_info
         ###########################################################################
         #                             END OF YOUR CODE                            #
@@ -315,10 +316,13 @@ class DecisionNode:
             self.terminal = True
             return
 
+        # Case we are chi pruning.
+        # Calculates the chi square, compare it to the values in the table and decides if to split the data or not.
         if self.chi != 1:
-            # Calculating the Chi square value, num of feature vals and num of different class in dataset
+            # Calculating the Chi square value with a helper function
             chi_square_val = self.chi_test(best_feature)
-            # If chi_square <= the value in the chi table, not splitting the data
+
+            # If chi_square <= the value in the chi table, do not split the data and return
             num_feature_values = len(np.unique(self.data[:, best_feature]))
             num_classes = len(np.unique(self.data[:, -1]))
             # Adjust degrees of freedom for chi-square test
@@ -327,6 +331,7 @@ class DecisionNode:
                 self.terminal = True
                 return
 
+        # Creates the children nodes for the split
         for value, sub_data in best_groups.items():
             child = DecisionNode(sub_data, self.impurity_func, depth=self.depth + 1,
                                  chi=self.chi, max_depth=self.max_depth, gain_ratio=self.gain_ratio)
@@ -339,6 +344,7 @@ class DecisionNode:
     def chi_test(self, feature):
         """
         Performs the chi square test and calculate the chi square value
+        according to the lecture's formula.
 
         :param feature: The feature for the chi square test
         :return: The chi square value
@@ -348,10 +354,15 @@ class DecisionNode:
         feature_values = np.unique(dataset[feature])
         feature_classes = np.unique(dataset.iloc[:, -1])
         for feature_val in feature_values:
+            # Number of instances that the value in the current feature column equals feature_val
             Df = len(dataset[dataset[feature] == feature_val])
             for class_val in feature_classes:
+                # Number of instances that the value in the current feature column equals feature_val
+                # and their label equals to class_val
                 pf = len(dataset[(dataset[feature] == feature_val) & (dataset.iloc[:, -1] == class_val)])
+                # Calculating E.
                 E_class_val = Df * len(dataset[dataset.iloc[:, -1] == class_val]) / dataset.shape[0]
+                # Adding the calculation to chi_result
                 chi_result += (pf - E_class_val) ** 2 / E_class_val
 
         return chi_result
@@ -380,6 +391,8 @@ class DecisionTree:
         ##########################################################################
         # Initialize the queue of the the nodes to create the tree from.
         nodes_queue = []
+
+        # Creating the first root node and add it to the queue
         self.root = DecisionNode(self.data, self.impurity_func, depth=0, chi=self.chi,
                                  max_depth=self.max_depth, gain_ratio=self.gain_ratio)
         nodes_queue.append(self.root)
@@ -387,7 +400,7 @@ class DecisionTree:
         while nodes_queue:
             current_node = nodes_queue.pop()
             # if current node is perfectly classified, continue to the next node
-            if len(np.unique(current_node.data[:, -1])) == 1:  # more efficient than calculating the impurity
+            if len(np.unique(current_node.data[:, -1])) == 1:
                 current_node.terminal = True
                 continue
             # if current node is a leaf, continue to the next node
@@ -395,11 +408,14 @@ class DecisionTree:
                 current_node.terminal = True
                 continue
 
+            # Splitting the node according to the best feature (Details inside the split function)
             current_node.split()
 
+            # Adds the new children to the queue
             for child in current_node.children:
                 nodes_queue.append(child)
 
+        # Calculate the feature importance recursively as a post process
         self.calculate_feature_importance(self.root, self.root.data.shape[0])
         ###########################################################################
         #                             END OF YOUR CODE                            #
@@ -414,9 +430,10 @@ class DecisionTree:
 
         This function has no return value, it only assigns the appropriate FI to each node in the tree.
         """
-
+        # Calculates the current node's FI.
         node.calc_feature_importance(n_total_sample)
 
+        # Recursively iterating over all the children of the current node.
         for child in node.children:
             self.calculate_feature_importance(child, n_total_sample)
 
@@ -436,8 +453,9 @@ class DecisionTree:
         ###########################################################################
         # start from the root
         node = self.root
+
         # while the node is not a leaf (terminal)
-        while not node.terminal :
+        while not node.terminal:
             # get the feature value of the instance to decide which child to go to
             feature_value = instance[node.feature]
             # check if the feature value is in the training data (if not, return the prediction of the current node)
@@ -448,10 +466,10 @@ class DecisionTree:
                     node = child
                     child_found = True
                     break
-            if not child_found: # the feature value is not in the training data
+            if not child_found:  # the feature value is not in the training data
                 return node.pred
         # get the prediction of the leaf node
-        pred = node.pred  # why do we need "pred" if we have tio return node.pred?
+        pred = node.pred
         ###########################################################################
         #                             END OF YOUR CODE                            #
         ###########################################################################
@@ -507,10 +525,11 @@ def depth_pruning(X_train, X_validation):
         # TODO: Implement the function.                                           #
         ###########################################################################
         # note that we are already in the loop of the max_depth values
+
         # create the tree: entropy with gain_ratio bring the best results (from the previous part)
         tree = DecisionTree(X_train, calc_entropy, max_depth=max_depth, gain_ratio=True)
-        tree.build_tree() 
-        # calculate the  accuracy
+        tree.build_tree()
+        # calculate the accuracy
         training_accuracy, validation_accuracy = tree.calc_accuracy(X_train), tree.calc_accuracy(X_validation)
         # append the accuracies to the lists
         training.append(training_accuracy)
@@ -543,7 +562,6 @@ def chi_pruning(X_train, X_test):
     # TODO: Implement the function.                                           #
     ###########################################################################
     chi_testing_acc = []
-    # check the chi_table dictionary which contains the chi values for different degrees of freedom
 
     # iterate over the chi values
     for p_val in [1, 0.5, 0.25, 0.1, 0.05, 0.0001]:
