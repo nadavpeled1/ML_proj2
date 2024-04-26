@@ -316,8 +316,11 @@ class DecisionNode:
 
         # chi: prune the tree if the best goodness is less than the chi value
         # reminder: we set the p-value when initializing the tree, and we have the chi_table dictionary according to
-        # the degrees of freedom = number of features - 1.
-        df = self.data.shape[1] - 1 # since we have only 2 classes, and we already know we have #classes != 1
+        # the degrees of freedom = number of feature values - 1.
+        # Calculate the number of feature values
+        num_feature_values = len(np.unique(self.data[:, best_feature]))
+        # Adjust degrees of freedom for chi-square test
+        df = num_feature_values - 1
         if self.chi != 1 and best_goodness < chi_table[df][self.chi]:
             self.terminal = True
             return
