@@ -314,19 +314,17 @@ class DecisionNode:
             self.terminal = True
             return
 
-        # chi: prune the tree if the best goodness is less than the chi value
-        # reminder: we set the p-value when initializing the tree, and we have the chi_table dictionary according to
-        # the degrees of freedom = number of feature values - 1.
-        # Calculate the number of feature values
-
-        # Calculating the Chi square value, num of feature vals and num of different class in dataset
-        self.chi, num_feature_values, num_classes = self.chi_test(best_feature)
-
-        # Adjust degrees of freedom for chi-square test
-        df = (num_feature_values - 1) * (num_classes - 1)
-        if self.chi != 1 and best_goodness < chi_table[df][self.chi]:
-            self.terminal = True
-            return
+        if self.chi != 1:
+            # Calculating the Chi square value, num of feature vals and num of different class in dataset
+            chi_square_val = self.chi_test(best_feature)
+            # If chi_square <= the value in the chi table, not splitting the data
+            num_feature_values = len(np.unique(self.data[:, best_feature]))
+            num_classes = len(np.unique(self.data[:, -1]))
+            # Adjust degrees of freedom for chi-square test
+            df = (num_feature_values - 1) * (num_classes - 1)
+            if chi_square_val <= chi_table[df][self.chi]:
+                self.terminal = True
+                return
 
         for value, sub_data in best_groups.items():
             child = DecisionNode(sub_data, self.impurity_func, depth=self.depth + 1,
@@ -344,16 +342,32 @@ class DecisionNode:
         :return:
         """
         chi_result = 0
-        feature_values = np.unique(self.data[:, feature])
-        feature_classes = np.unique(self.data[:, -1])
+        dataset = pd.DataFrame(self.data)
+        feature_values = np.unique(dataset[feature])
+        feature_classes = np.unique(dataset.iloc[:, -1])
         for feature_val in feature_values:
-            Df = len([self.data[:, feature] == feature_val])
+            Df = len(dataset[dataset[feature] == feature_val])
             for class_val in feature_classes:
-                pf = len([self.data[:, feature] == feature_val and self.data[:, -1] == class_val])
-                E_class_val = Df * len([self.data[:, -1] == class_val]) / len(self.data)
+                pf = len(dataset[(dataset[feature] == feature_val) & (dataset.iloc[:, -1] == class_val)])
+                # pf = len([self.data[:, feature] == feature_val and self.data[:, -1] == class_val])
+                E_class_val = Df * len(dataset[dataset.iloc[:, -1] == class_val]) / dataset.shape[0]
                 chi_result += (pf - E_class_val) ** 2 / E_class_val
 
-        return chi_result, len(feature_values), len(feature_classes)
+        # # Create a contingency table
+        # contingency_table = pd.crosstab(self.data[feature], self.data[:-1])
+        #
+        # # Observed frequencies
+        # observed = contingency_table.values
+        #
+        # # Calculate expected frequencies
+        # expected = np.sum(observed, axis=0) * np.sum(observed, axis=1)[:, np.newaxis] / np.sum(observed)
+        #
+        # # Calculate chi-squared value
+        # chi_squared = np.sum((observed - expected) ** 2 / expected)
+        #
+        # return chi_squared
+
+        return chi_result
 
 
 class DecisionTree:
@@ -547,12 +561,9 @@ def chi_pruning(X_train, X_test):
     # iterate over the chi values
     for p_val in [1, 0.5, 0.25, 0.1, 0.05, 0.0001]:
         # create the tree: entropy + gain_ratio (bring the best results, from the previous part)
-        tree = DecisionTree(X_train, calc_entropy, gain_ratio=True)
+        tree = DecisionTree(X_train, calc_entropy, gain_ratio=True, chi=p_val)
         # build the tree
         tree.build_tree()
-        # Pruning the tree
-        node = tree.root
-
         # calculate the accuracy
         chi_training_acc.append(tree.calc_accuracy(X_train))
         chi_validation_acc.append(tree.calc_accuracy(X_test))
@@ -577,13 +588,14 @@ def count_nodes(node):
     ###########################################################################
     # TODO: Implement the function.                                           #
     ###########################################################################
+    n_nodes = 0
+
     if not node:
         return 0
 
-    if not node.children:
+    if len(node.children) == 0:
         return 1
 
-    n_nodes = 0
     for child in node.children:
         n_nodes += count_nodes(child)
 
