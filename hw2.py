@@ -367,6 +367,16 @@ class DecisionNode:
 
         return chi_result
 
+    def depth_subtree(self):
+        """
+        Returns the depth of the subtree starting from the current node.
+        Helper function for the depth calculating later.
+
+        """
+        if not self.children:
+            return self.depth
+        return max(self.depth, max([child.depth_subtree() for child in self.children]))
+
 
 class DecisionTree:
     def __init__(self, data, impurity_func, feature=-1, chi=1, max_depth=1000, gain_ratio=False):
@@ -501,7 +511,11 @@ class DecisionTree:
         return accuracy
 
     def depth(self):
-        return self.root.depth()
+        """
+        Calculate the depth of the tree.
+        :return: The depth of the tree.
+        """
+        return self.root.depth_subtree()
 
 
 def depth_pruning(X_train, X_validation):
@@ -573,7 +587,7 @@ def chi_pruning(X_train, X_test):
         chi_training_acc.append(tree.calc_accuracy(X_train))
         chi_validation_acc.append(tree.calc_accuracy(X_test))
         # get the depth of the tree
-        depth.append(tree.depth)
+        depth.append(tree.depth())
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
